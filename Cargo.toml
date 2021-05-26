@@ -6,11 +6,16 @@ edition = "2018"
 
 [dependencies]
 console = "0.14.1"
+derive_more = "0.99.14"
+frunk = "0.3.2"
+frunk_core = "0.3.2"
+futures = "0.3.5"
 log = "0.4.14"
 pretty_env_logger = "0.4.0"
-teloxide = { version = "0.4", features = ["auto-send", "macros"] }
+teloxide = { version = "0.4", features = ["frunk", "macros", "auto-send"] }
 tokio = { version =  "1.6", features = ["rt-multi-thread", "macros"] }
 serde = "1.0.126"
 serde_derive = "1.0.126"
 serde_json = "1.0.64"
 reqwest = { version = "0.11.3", features = ["json"] }
+
