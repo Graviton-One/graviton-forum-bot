@@ -19,7 +19,7 @@ pub fn numbered_html_link(json_value: ResponseTopics) -> String {
                 views,
                 ..
             } = &ch;
-            let url = &format!("https://forum.graviton.one/{}", id.to_string());
+            let url = &format!("https://forum.graviton.one/t/{}", id.to_string());
             let post_link = link(url, &title);
             let num = index + 1;
 
