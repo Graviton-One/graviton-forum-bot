@@ -25,7 +25,7 @@ async fn start(
             }
         };
         cx.answer(html).parse_mode(Html).await?;
-        sleep(Duration::from_millis(60000)).await;
+        sleep(Duration::from_millis(21600000)).await;
     }
     exit()
 }
