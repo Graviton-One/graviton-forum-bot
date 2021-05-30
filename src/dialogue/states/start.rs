@@ -1,8 +1,7 @@
+use crate::dialogue::Dialogue;
+use crate::handlers::poller::poll_topics;
 use teloxide::{prelude::*, types::ParseMode::Html};
 use tokio::time::{sleep, Duration};
-
-use crate::dialogue::Dialogue;
-use crate::utils::numbered_html_link;
 
 #[derive(Clone)]
 pub struct StartState;
@@ -13,19 +12,18 @@ async fn start(
     cx: TransitionIn<AutoSend<Bot>>,
     _ans: String,
 ) -> TransitionOut<Dialogue> {
+    let mut forum = Vec::new();
     loop {
-        let end_point = "https://forum.graviton.one/top.json";
-        let body_text = reqwest::get(end_point).await.unwrap().text().await.unwrap();
-
-        let html: String = match serde_json::from_str(&body_text) {
-            Ok(json_value) => numbered_html_link(json_value),
-            Err(_e) => {
-                println!("{:?}", _e);
-                "Something went wrong. There were errors while reading the subreddit.".to_string()
+        // TODO: initialize with a fresh forum state instead of an empty one to avoid flooding
+        match poll_topics(&mut forum).await {
+            Ok(html) => {
+                cx.answer(html).parse_mode(Html).await?;
+                println!("forum topics: {:?}", forum.len());
             }
-        };
-        cx.answer(html).parse_mode(Html).await?;
-        sleep(Duration::from_millis(21600000)).await;
+            Err(e) => println!("{:?}", e),
+        }
+
+        sleep(Duration::from_millis(21600)).await;
     }
     exit()
 }
