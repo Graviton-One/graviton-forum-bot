@@ -2,19 +2,9 @@ use crate::handlers::parser::{parse_posts, parse_topics};
 use crate::handlers::publisher::{print_post, print_topic};
 use crate::models::error::BotError;
 use crate::models::forum::{Post, Topic};
+use crate::URL;
 
-// const URL: &str = "https://forum.graviton.one";
-// const URL: &str = "https://discourse.nixos.org";
-const URL: &str = "https://try.discourse.org";
-
-pub async fn poll_forum() -> String {
-    "".to_string()
-}
-
-// update the list of topics
-pub async fn poll_topics(topics_old: &mut Vec<Topic>) -> Result<String, BotError> {
-    let mut messages: Vec<String> = vec![String::from("New updates")];
-
+pub async fn poll_topics() -> Result<Vec<Topic>, BotError> {
     // fetch new json of topics
     let end_point = format!("{}/latest.json", URL); // TODO: add support for pagination "/top?page=1&per_page=50"
     let body = reqwest::get(end_point).await?;
@@ -27,6 +17,29 @@ pub async fn poll_topics(topics_old: &mut Vec<Topic>) -> Result<String, BotError
     for topic in &mut topics_new {
         poll_posts(topic).await?;
     }
+
+    Ok(topics_new)
+}
+
+// update a topic with a list of posts
+pub async fn poll_posts(topic: &mut Topic) -> Result<(), BotError> {
+    // fetch new json of posts for a topic
+    let end_point = format!("{}/t/{}.json", URL, topic.id);
+    let body = reqwest::get(end_point).await?;
+    let body_text = body.text().await?;
+
+    // parse into a vector of posts
+    topic.posts = parse_posts(body_text)?;
+    // println!("parsed posts for topic {}", topic.id);
+
+    Ok(())
+}
+
+// update the list of topics
+pub async fn poll_updates(topics_old: &mut Vec<Topic>) -> Result<Option<String>, BotError> {
+    let mut messages: Vec<String> = Vec::new();
+
+    let topics_new: Vec<Topic> = poll_topics().await?;
 
     // find topics with new ids
     let topics_diff: Vec<Topic> = topics_new
@@ -48,9 +61,11 @@ pub async fn poll_topics(topics_old: &mut Vec<Topic>) -> Result<String, BotError
             messages.push(post_message);
         }
     }
-    let topics_message = format!("found {} new topics", topics_diff.len());
-    println!("{}", &topics_message);
-    messages.push(topics_message);
+
+    if !topics_diff.is_empty() {
+        let topics_message = format!("found {} new topics", topics_diff.len());
+        println!("{}", &topics_message);
+    }
 
     // print new posts
     for topic_new in &topics_new {
@@ -61,6 +76,9 @@ pub async fn poll_topics(topics_old: &mut Vec<Topic>) -> Result<String, BotError
         {
             None => continue,
             Some(topic_old) => {
+                if topic_new.highest_post_number == topic_old.highest_post_number {
+                    continue;
+                }
                 let posts_new = &topic_new.posts;
                 let posts_old = &topic_old.posts;
 
@@ -76,33 +94,22 @@ pub async fn poll_topics(topics_old: &mut Vec<Topic>) -> Result<String, BotError
                     messages.push(post_message);
                 }
 
-                if posts_diff.len() > 0 {
+                if !posts_diff.is_empty() {
                     let posts_message = format!(
                         "found {} new posts for topic {}",
                         posts_diff.len(),
                         topic_new.id
                     );
                     println!("{}", &posts_message);
-                    messages.push(posts_message);
                 }
             }
         }
     }
 
     *topics_old = topics_new;
-    Ok(messages.join("\n"))
-}
-
-// update a topic with a list of posts
-pub async fn poll_posts(topic: &mut Topic) -> Result<(), BotError> {
-    // fetch new json of posts for a topic
-    let end_point = format!("{}/t/{}.json", URL, topic.id);
-    let body = reqwest::get(end_point).await?;
-    let body_text = body.text().await?;
-
-    // parse into a vector of posts
-    topic.posts = parse_posts(body_text)?;
-    // println!("parsed posts for topic {}", topic.id);
-
-    Ok(())
+    if messages.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(messages.join("\n")))
+    }
 }

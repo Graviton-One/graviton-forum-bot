@@ -23,7 +23,9 @@ pub fn parse_topics(json: String) -> Result<Vec<Topic>, BotError> {
             like_count: t.like_count,
             views: t.views,
             category_id: t.category_id,
+            highest_post_number: t.highest_post_number,
             posts: Vec::new(),
+            last_poster_username: t.last_poster_username,
         };
         topics.push(topic);
     }
@@ -46,6 +48,7 @@ pub fn parse_posts(json: String) -> Result<Vec<Post>, BotError> {
             cooked: p.cooked,
             created_at: p.created_at,
             updated_at: p.updated_at,
+            topic_id: p.topic_id,
         };
         posts.push(post);
     }

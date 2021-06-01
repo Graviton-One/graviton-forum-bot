@@ -125,7 +125,7 @@ pub struct Post {
     pub score: f64,
     pub yours: Option<bool>,
     #[serde(rename = "topic_id")]
-    pub topic_id: Option<i64>,
+    pub topic_id: i64,
     #[serde(rename = "topic_slug")]
     pub topic_slug: Option<String>,
     #[serde(rename = "display_username")]

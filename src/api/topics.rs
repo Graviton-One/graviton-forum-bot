@@ -80,7 +80,7 @@ pub struct Topic {
     #[serde(rename = "has_summary")]
     pub has_summary: Option<bool>,
     #[serde(rename = "last_poster_username")]
-    pub last_poster_username: Option<String>,
+    pub last_poster_username: String,
     #[serde(rename = "category_id")]
     pub category_id: i64,
     #[serde(rename = "pinned_globally")]

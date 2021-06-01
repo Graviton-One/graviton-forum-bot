@@ -13,6 +13,9 @@ mod models;
 
 use crate::dialogue::Dialogue;
 
+const URL: &str = "https://forum.graviton.one";
+// pub const URL: &str = "https://try.discourse.org";
+
 #[tokio::main]
 async fn main() {
     run().await;
