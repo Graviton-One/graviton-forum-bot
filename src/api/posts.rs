@@ -131,13 +131,13 @@ pub struct Post {
     #[serde(rename = "display_username")]
     pub display_username: Option<String>,
     #[serde(rename = "primary_group_name")]
-    pub primary_group_name: ::serde_json::Value,
-    #[serde(rename = "primary_group_flair_url")]
-    pub primary_group_flair_url: ::serde_json::Value,
-    #[serde(rename = "primary_group_flair_bg_color")]
-    pub primary_group_flair_bg_color: ::serde_json::Value,
-    #[serde(rename = "primary_group_flair_color")]
-    pub primary_group_flair_color: ::serde_json::Value,
+    // pub primary_group_name: ::serde_json::Value,
+    // #[serde(rename = "primary_group_flair_url")]
+    // pub primary_group_flair_url: ::serde_json::Value,
+    // #[serde(rename = "primary_group_flair_bg_color")]
+    // pub primary_group_flair_bg_color: ::serde_json::Value,
+    // #[serde(rename = "primary_group_flair_color")]
+    // pub primary_group_flair_color: ::serde_json::Value,
     pub version: Option<i64>,
     #[serde(rename = "can_edit")]
     pub can_edit: Option<bool>,
@@ -282,13 +282,13 @@ pub struct Participant {
     #[serde(rename = "post_count")]
     pub post_count: Option<i64>,
     #[serde(rename = "primary_group_name")]
-    pub primary_group_name: ::serde_json::Value,
-    #[serde(rename = "primary_group_flair_url")]
-    pub primary_group_flair_url: ::serde_json::Value,
-    #[serde(rename = "primary_group_flair_color")]
-    pub primary_group_flair_color: ::serde_json::Value,
-    #[serde(rename = "primary_group_flair_bg_color")]
-    pub primary_group_flair_bg_color: ::serde_json::Value,
+    // pub primary_group_name: ::serde_json::Value,
+    // #[serde(rename = "primary_group_flair_url")]
+    // pub primary_group_flair_url: ::serde_json::Value,
+    // #[serde(rename = "primary_group_flair_color")]
+    // pub primary_group_flair_color: ::serde_json::Value,
+    // #[serde(rename = "primary_group_flair_bg_color")]
+    // pub primary_group_flair_bg_color: ::serde_json::Value,
     pub admin: Option<bool>,
     pub moderator: Option<bool>,
     #[serde(rename = "trust_level")]

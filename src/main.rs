@@ -1,9 +1,3 @@
-#![allow(clippy::trivial_regex)]
-#![allow(dead_code)]
-
-#[macro_use]
-extern crate frunk;
-
 use teloxide::prelude::*;
 
 mod api;

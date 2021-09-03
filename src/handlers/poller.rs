@@ -1,45 +1,112 @@
-use crate::handlers::parser::{parse_posts, parse_topics};
+use serde_json::{Value, from_str};
+use tokio::time::{Duration, sleep};
+use crate::api::posts::{ResponsePosts, Post as ResponsePost};
+use crate::api::topics::ResponseTopics;
 use crate::handlers::publisher::{print_post, print_topic};
 use crate::models::error::BotError;
 use crate::models::forum::{Post, Topic};
 use crate::URL;
 
-pub async fn poll_topics() -> Result<Vec<Topic>, BotError> {
-    // fetch new json of topics
-    let end_point = format!("{}/latest.json", URL); // TODO: add support for pagination "/top?page=1&per_page=50"
-    let body = reqwest::get(end_point).await?;
-    let body_text = body.text().await?;
+async fn fetch(url: &str) -> Result<String, BotError> {
 
-    // parse into a vector of topics
-    let mut topics_new: Vec<Topic> = parse_topics(body_text)?;
+    let mut body_text: String;
+    let forum_api_key: String = std::env::var("FORUM_API_KEY").expect("forum api key get");
+    let interval = Duration::from_secs(60);
 
-    // populate each topic with a vector of posts
-    for topic in &mut topics_new {
-        poll_posts(topic).await?;
+    loop {
+        let body = reqwest::Client::new()
+            .get(url)
+            .header("Api-Key", &forum_api_key)
+            .header("Api-Username", "system")
+            .send()
+            .await?;
+        body_text = body.text().await?;
+        // println!("{}", body_text);
+        let body_json: Value = from_str(&body_text)?;
+        if body_json["error_type"] == "rate_limit" {
+            // println!("rate limit, wait for {:#?}", interval);
+            sleep(interval).await;
+            continue
+        }
+        return Ok(body_text)
     }
-
-    Ok(topics_new)
 }
 
-// update a topic with a list of posts
-pub async fn poll_posts(topic: &mut Topic) -> Result<(), BotError> {
-    // fetch new json of posts for a topic
-    let end_point = format!("{}/t/{}.json", URL, topic.id);
-    let body = reqwest::get(end_point).await?;
-    let body_text = body.text().await?;
+pub async fn poll_latest() -> Result<Vec<Topic>, BotError> {
+    // println!("poll_latest");
 
-    // parse into a vector of posts
-    topic.posts = parse_posts(body_text)?;
-    // println!("parsed posts for topic {}", topic.id);
+    // println!("fetch new json of topics");
+    let url = format!("{}/latest.json", URL); // TODO: add support for pagination "/top?page=1&per_page=50"
+    // println!("{}", &url);
 
-    Ok(())
+    let body_text = fetch(&url).await?;
+
+    // println!("parse into a vector of topics");
+    let response: ResponseTopics = from_str(&body_text)?;
+
+    let mut topics: Vec<Topic> = Vec::new();
+
+    // println!("parsing topics");
+    for t in response.topic_list.topics {
+        // println!("initializing topic {}", t.id);
+        let topic = Topic {
+            id: t.id,
+            title: t.title,
+            slug: t.slug,
+            created_at: t.created_at,
+            last_posted_at: t.last_posted_at,
+            posts_count: t.posts_count,
+            reply_count: t.reply_count,
+            like_count: t.like_count,
+            views: t.views,
+            category_id: t.category_id,
+            highest_post_number: t.highest_post_number,
+            posts: Vec::new(),
+            last_poster_username: t.last_poster_username,
+        };
+        topics.push(topic);
+    }
+
+    for topic in &mut topics {
+        // println!("fetch new json of posts for a topic {}", topic.id);
+        let url = format!("{}/t/{}.json", URL, topic.id);
+        // println!("{}", &url);
+
+        let body_text = fetch(&url).await?;
+        // println!("{},{}", topic.id, body_text);
+
+        let response: ResponsePosts = from_str(&body_text)?;
+
+        for post_id in response.post_stream.stream {
+            // println!("fetch post {} for the topic {}", post_id, topic.id);
+            let url = format!("{}/posts/{}.json", URL, post_id);
+            // println!("{}", &url);
+
+            let body_text = fetch(&url).await?;
+            // println!("{},{}", post_id, body_text);
+
+            let p: ResponsePost = from_str(&body_text)?;
+
+            let post = Post {
+                id: p.id,
+                username: p.username,
+                cooked: p.cooked,
+                created_at: p.created_at,
+                updated_at: p.updated_at,
+                topic_id: p.topic_id,
+            };
+            topic.posts.push(post);
+        }
+    }
+
+    Ok(topics)
 }
 
 // update the list of topics
 pub async fn poll_updates(topics_old: &mut Vec<Topic>) -> Result<Option<String>, BotError> {
     let mut messages: Vec<String> = Vec::new();
 
-    let topics_new: Vec<Topic> = poll_topics().await?;
+    let topics_new: Vec<Topic> = poll_latest().await?;
 
     // find topics with new ids
     let topics_diff: Vec<Topic> = topics_new
@@ -88,6 +155,7 @@ pub async fn poll_updates(topics_old: &mut Vec<Topic>) -> Result<Option<String>,
                     .into_iter()
                     .filter(|post_new| !posts_old.iter().any(|post_old| post_new.id == post_old.id))
                     .collect();
+
                 // print each new post
                 for post in &posts_diff {
                     let post_message = print_post(post).await?;
@@ -110,6 +178,6 @@ pub async fn poll_updates(topics_old: &mut Vec<Topic>) -> Result<Option<String>,
     if messages.is_empty() {
         Ok(None)
     } else {
-        Ok(Some(messages.join("\n")))
+        Ok(Some(messages.join("\n\n")))
     }
 }

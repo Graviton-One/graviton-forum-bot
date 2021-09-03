@@ -1,5 +1,5 @@
 use crate::dialogue::Dialogue;
-use crate::handlers::poller::{poll_topics, poll_updates};
+use crate::handlers::poller::{poll_latest, poll_updates};
 use log::info;
 use teloxide::{prelude::*, types::ParseMode::Html};
 use tokio::time::{sleep, Duration};
@@ -13,10 +13,10 @@ async fn start(
     cx: TransitionIn<AutoSend<Bot>>,
     _ans: String,
 ) -> TransitionOut<Dialogue> {
-    // try to initialize forum before listening to updates to avoid flood on start
+    // initialize forum before listening to updates to avoid flood on start
     info!("Initializing forum state...");
     let interval = Duration::from_secs(60); // polling interval in seconds
-    let mut forum = match poll_topics().await {
+    let mut forum = match poll_latest().await {
         Ok(vec) => vec,
         Err(_) => Vec::new(),
     };
@@ -36,7 +36,10 @@ async fn start(
                     }
                 };
             }
-            Err(e) => println!("{:?}", e),
+            Err(e) => {
+                println!("{:?}", e);
+                sleep(interval).await;
+            },
         }
     }
     exit()
